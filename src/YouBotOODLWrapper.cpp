@@ -123,11 +123,13 @@ void YouBotOODLWrapper::initializeArm(std::string armName, bool enableStandardGr
     stringstream topicName;
     stringstream serviceName;
 
+
     try
     {
         YouBotArmConfiguration tmpArmConfig;
         youBotConfiguration.youBotArmConfigurations.push_back(tmpArmConfig);
         armIndex = static_cast<int> (youBotConfiguration.youBotArmConfigurations.size()) - 1;
+        printf("arm index: = %d\n", armIndex);
         youBotConfiguration.youBotArmConfigurations[armIndex].youBotArm = new youbot::YouBotManipulator(armName, youBotConfiguration.configurationFilePath);
         youBotConfiguration.youBotArmConfigurations[armIndex].armID = armName;
         topicName.str("");
@@ -262,6 +264,10 @@ void YouBotOODLWrapper::initializeArm(std::string armName, bool enableStandardGr
 
     // we can handle actionlib requests only after the complete initialization has been performed
 	youBotConfiguration.youBotArmConfigurations[armIndex].armJointTrajectoryAction->start();
+
+	ramp_generator_on_ = node.subscribe("ramp_generator_on",1, &YouBotOODLWrapper::RampGeneratorOnCallback, this);
+        ramp_generator_off_ = node.subscribe("ramp_generator_off",1, &YouBotOODLWrapper::RampGeneratorOffCallback, this);
+
 }
 
 /*
@@ -1114,6 +1120,39 @@ bool YouBotOODLWrapper::reconnectCallback(std_srvs::Empty::Request& request, std
 		}
 	}
 	return true;
+}
+
+void YouBotOODLWrapper::RampGeneratorOnCallback(std_msgs::Empty)
+{
+  ROS_INFO("[%s] ramp generator On", ros::this_node::getNamespace().c_str());
+  for (int joint_nr = 1; joint_nr <= 5; joint_nr++)
+  {
+    setRampGeneratorForJoint(joint_nr, true);
+  }
+}
+
+void YouBotOODLWrapper::RampGeneratorOffCallback(std_msgs::Empty)
+{
+  ROS_INFO("[%s] ramp generator Off", ros::this_node::getNamespace().c_str());
+  for (int joint_nr = 1; joint_nr <= 5; joint_nr++)
+  {
+    setRampGeneratorForJoint(joint_nr, false);
+  }
+}
+
+void YouBotOODLWrapper::setRampGeneratorForJoint(int joint_nr, bool value)
+{
+  int armIndex = 0;
+  youbot::RampGeneratorSpeedAndPositionControl RampGeneratorSpeedAndPositionControl_Parameter;
+  RampGeneratorSpeedAndPositionControl_Parameter.setParameter(value);
+//  youbot::YouBotJoint* joint = NULL;
+
+
+  youBotConfiguration.youBotArmConfigurations[armIndex].youBotArm->getArmJoint(joint_nr).setConfigurationParameter(RampGeneratorSpeedAndPositionControl_Parameter);
+
+
+//  joint = &(youBotConfiguration.getArmJoint(joint_nr));
+  //joint->setConfigurationParameter(RampGeneratorSpeedAndPositionControl_Parameter);
 }
 
 void YouBotOODLWrapper::publishArmAndBaseDiagnostics(double publish_rate_in_secs) {

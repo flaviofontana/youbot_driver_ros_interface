@@ -73,6 +73,8 @@
 
 //typedef actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> Server;
 
+#include "std_msgs/Empty.h"
+
 namespace youBot
 {
 
@@ -83,204 +85,209 @@ class YouBotOODLWrapper
 {
 public:
 
-    /**
-     * @brief Constructor with a ROS handle.
-     * @param n ROS handle
-     */
-    YouBotOODLWrapper(ros::NodeHandle n);
+  /**
+   * @brief Constructor with a ROS handle.
+   * @param n ROS handle
+   */
+  YouBotOODLWrapper(ros::NodeHandle n);
 
-    /**
-     * @brief DEfault constructor.
-     */
-    virtual ~YouBotOODLWrapper();
+  /**
+   * @brief DEfault constructor.
+   */
+  virtual ~YouBotOODLWrapper();
 
+  /* Coordination: */
 
-    /* Coordination: */
+  /**
+   * @brief Initializes a youBot base.
+   * @param baseName Name of the base. Used to open the configuration file e.g. youbot-base.cfg
+   */
+  void initializeBase(std::string baseName);
 
-    /**
-     * @brief Initializes a youBot base.
-     * @param baseName Name of the base. Used to open the configuration file e.g. youbot-base.cfg
-     */
-    void initializeBase(std::string baseName);
+  /**
+   * @brief Initializes a youBot base.
+   * @param armName Name of the base. Used to open the configuration file e.g. youbot-manipulator.cfg
+   * @param enableStandardGripper If set to true, then the default gripper of the youBot will be initialized.
+   */
+  void initializeArm(std::string armName, bool enableStandardGripper = true);
 
-    /**
-     * @brief Initializes a youBot base.
-     * @param armName Name of the base. Used to open the configuration file e.g. youbot-manipulator.cfg
-     * @param enableStandardGripper If set to true, then the default gripper of the youBot will be initialized.
-     */
-    void initializeArm(std::string armName, bool enableStandardGripper = true);
+  /**
+   * @brief Stops all initialized elements.
+   * Stops arm and/or base (if initialized).
+   */
+  void stop();
 
-    /**
-     * @brief Stops all initialized elements.
-     * Stops arm and/or base (if initialized).
-     */
-    void stop();
+  /* Communication: */
 
+  /**
+   * @brief Callback that is executed when a commend for the base comes in.
+   * @param youbotBaseCommand Message that contains the desired translational and rotational velocity for the base.
+   */
+  void baseCommandCallback(const geometry_msgs::Twist& youbotBaseCommand);
 
-    /* Communication: */
+  /**
+   * @deprecated
+   * @brief Callback that is executed when a commend for the arm comes in.
+   * @param youbotArmCommand Message that contains the desired joint configuration.
+   *
+   * Currently only the first configuration (JointTrajectoryPoint) per message is processed.
+   * Velocity and acceleration values are ignored.
+   */
+  void armCommandCallback(const trajectory_msgs::JointTrajectory& youbotArmCommand);
 
-    /**
-     * @brief Callback that is executed when a commend for the base comes in.
-     * @param youbotBaseCommand Message that contains the desired translational and rotational velocity for the base.
-     */
-    void baseCommandCallback(const geometry_msgs::Twist& youbotBaseCommand);
+  /**
+   * @brief Callback that is executed when a position command for the arm comes in.
+   * @param youbotArmCommand Message that contains the desired joint configuration.
+   * @param armIndex Index that identifies the arm
+   */
+  void armPositionsCommandCallback(const brics_actuator::JointPositionsConstPtr& youbotArmCommand, int armIndex);
 
-    /**
-     * @deprecated
-     * @brief Callback that is executed when a commend for the arm comes in.
-     * @param youbotArmCommand Message that contains the desired joint configuration.
-     *
-     * Currently only the first configuration (JointTrajectoryPoint) per message is processed.
-     * Velocity and acceleration values are ignored.
-     */
-    void armCommandCallback(const trajectory_msgs::JointTrajectory& youbotArmCommand);
+  /**
+   * @brief Callback that is executed when a velocity command for the arm comes in.
+   * @param youbotArmCommand Message that contains the desired joint configuration.
+   * @param armIndex Index that identifies the arm
+   */
+  void armVelocitiesCommandCallback(const brics_actuator::JointVelocitiesConstPtr& youbotArmCommand, int armIndex);
 
-    /**
-     * @brief Callback that is executed when a position command for the arm comes in.
-     * @param youbotArmCommand Message that contains the desired joint configuration.
-     * @param armIndex Index that identifies the arm
-     */
-    void armPositionsCommandCallback(const brics_actuator::JointPositionsConstPtr& youbotArmCommand, int armIndex);
+  /**
+   * @brief Callback that is executed when an action goal to perform a joint trajectory with the arm comes in.
+   * @param youbotArmGoal Actionlib goal that contains the trajectory.
+   * @param armIndex Index that identifies the arm
+   */
+  void armJointTrajectoryGoalCallback(
+      actionlib::ActionServer<control_msgs::FollowJointTrajectoryAction>::GoalHandle youbotArmGoal,
+      unsigned int armIndex);
 
-    /**
-     * @brief Callback that is executed when a velocity command for the arm comes in.
-     * @param youbotArmCommand Message that contains the desired joint configuration.
-     * @param armIndex Index that identifies the arm
-     */
-    void armVelocitiesCommandCallback(const brics_actuator::JointVelocitiesConstPtr& youbotArmCommand, int armIndex);
+  /**
+   * @brief Callback that is executed when an action goal of a joint trajectory is canceled.
+   * @param youbotArmGoal Actionlib goal that contains the trajectory.
+   * @param armIndex Index that identifies the arm
+   */
+  void armJointTrajectoryCancelCallback(
+      actionlib::ActionServer<control_msgs::FollowJointTrajectoryAction>::GoalHandle youbotArmGoal,
+      unsigned int armIndex);
 
-    /**
-	 * @brief Callback that is executed when an action goal to perform a joint trajectory with the arm comes in.
-	 * @param youbotArmGoal Actionlib goal that contains the trajectory.
-	 * @param armIndex Index that identifies the arm
-	 */
-	void armJointTrajectoryGoalCallback(actionlib::ActionServer<control_msgs::FollowJointTrajectoryAction>::GoalHandle youbotArmGoal, unsigned int armIndex);
+  /**
+   * @brief Callback that is executed when a position command for the gripper comes in.
+   * @param youbotGripperCommand Message that contains the desired joint configuration.
+   * @param armIndex Index that identifies the arm
+   */
+  void gripperPositionsCommandCallback(const brics_actuator::JointPositionsConstPtr& youbotGripperCommand,
+                                       int armIndex);
 
-	/**
-	 * @brief Callback that is executed when an action goal of a joint trajectory is canceled.
-	 * @param youbotArmGoal Actionlib goal that contains the trajectory.
-	 * @param armIndex Index that identifies the arm
-	 */
-	void armJointTrajectoryCancelCallback(actionlib::ActionServer<control_msgs::FollowJointTrajectoryAction>::GoalHandle youbotArmGoal, unsigned int armIndex);
-    
-    /**
-     * @brief Callback that is executed when a position command for the gripper comes in.
-     * @param youbotGripperCommand Message that contains the desired joint configuration.
-     * @param armIndex Index that identifies the arm
-     */
-    void gripperPositionsCommandCallback(const brics_actuator::JointPositionsConstPtr& youbotGripperCommand, int armIndex);
+  /**
+   * @brief Publishes all sensor measurements. Both for base and arm.
+   *
+   * Depending on what has been initialized before, either odometry and/or joint state valiues are published.
+   * computeOODLSensorReadings needs to be executed before.
+   */
+  void publishOODLSensorReadings();
 
-    /**
-     * @brief Publishes all sensor measurements. Both for base and arm.
-     *
-     * Depending on what has been initialized before, either odometry and/or joint state valiues are published.
-     * computeOODLSensorReadings needs to be executed before.
-     */
-    void publishOODLSensorReadings();
-    
-    /**
-    * @brief Publishes status of base and arm as diagnostic and dashboard messages continuously
-    */
-    void publishArmAndBaseDiagnostics(double publish_rate_in_secs);
+  /**
+   * @brief Publishes status of base and arm as diagnostic and dashboard messages continuously
+   */
+  void publishArmAndBaseDiagnostics(double publish_rate_in_secs);
 
-    /* Computation: */
+  /* Computation: */
 
-    /**
-     * @brief Mapps OODL values to ROS messages
-     */
-    void computeOODLSensorReadings();
+  /**
+   * @brief Mapps OODL values to ROS messages
+   */
+  void computeOODLSensorReadings();
 
-    bool switchOffBaseMotorsCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+  bool switchOffBaseMotorsCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
-    bool switchOnBaseMotorsCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+  bool switchOnBaseMotorsCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
-    bool switchOffArmMotorsCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response, int armIndex);
+  bool switchOffArmMotorsCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response, int armIndex);
 
-    bool switchOnArmMotorsCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response, int armIndex);
+  bool switchOnArmMotorsCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response, int armIndex);
 
-    bool calibrateArmCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response, int armIndex);
+  bool calibrateArmCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response, int armIndex);
 
-    bool reconnectCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+  bool reconnectCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
-    /* Configuration: */
+  /* Configuration: */
 
-    /// Handle the aggregates all parts of a youBot system
-    YouBotConfiguration youBotConfiguration;
+  /// Handle the aggregates all parts of a youBot system
+  YouBotConfiguration youBotConfiguration;
 
+  void RampGeneratorOnCallback(std_msgs::Empty);
+  void RampGeneratorOffCallback(std_msgs::Empty);
+  void setRampGeneratorForJoint(int joint_nr, bool value);
 private:
 
-    YouBotOODLWrapper(); //forbid default constructor
-    
+  YouBotOODLWrapper(); //forbid default constructor
 
-    /// Degrees of freedom for the youBot manipulator
-    static const int youBotArmDoF = 5;
+  /// Degrees of freedom for the youBot manipulator
+  static const int youBotArmDoF = 5;
 
-    /// Number of finger mounted on the gripper.
-    static const int youBotNumberOfFingers = 2;
+  /// Number of finger mounted on the gripper.
+  static const int youBotNumberOfFingers = 2;
 
-    /// Number of wheels attached to the base.
-    static const int youBotNumberOfWheels = 4;
+  /// Number of wheels attached to the base.
+  static const int youBotNumberOfWheels = 4;
 
+  std::string youBotChildFrameID;
+  std::string youBotOdometryFrameID;
+  std::string youBotOdometryChildFrameID;
+  std::string youBotArmFrameID;
 
-    std::string youBotChildFrameID;
-    std::string youBotOdometryFrameID;
-    std::string youBotOdometryChildFrameID;
-    std::string youBotArmFrameID;
+  /// The ROS node handle
+  ros::NodeHandle node;
 
+  ros::Subscriber ramp_generator_on_;
+  ros::Subscriber ramp_generator_off_;
 
-    /// The ROS node handle
-    ros::NodeHandle node;
+  /// ROS timestamp
+  ros::Time currentTime;
 
-    /// ROS timestamp
-    ros::Time currentTime;
+  /// The published odometry message with distances in [m], angles in [RAD] and velocities in [m/s] and [RAD/s]
+  nav_msgs::Odometry odometryMessage;
 
+  /// The published odometry tf frame with distances in [m]
+  geometry_msgs::TransformStamped odometryTransform;
 
-    /// The published odometry message with distances in [m], angles in [RAD] and velocities in [m/s] and [RAD/s]
-    nav_msgs::Odometry odometryMessage;
+  /// The quaternion inside the tf odometry frame with distances in [m]
+  geometry_msgs::Quaternion odometryQuaternion;
 
-    /// The published odometry tf frame with distances in [m]
-    geometry_msgs::TransformStamped odometryTransform;
+  /// The published joint state of the base (wheels) with angles in [RAD] and velocities in [RAD/s]
+  sensor_msgs::JointState baseJointStateMessage;
 
-    /// The quaternion inside the tf odometry frame with distances in [m]
-    geometry_msgs::Quaternion odometryQuaternion;
+  /// Vector of the published joint states of per arm with angles in [RAD]
+  vector<sensor_msgs::JointState> armJointStateMessages;
 
-    /// The published joint state of the base (wheels) with angles in [RAD] and velocities in [RAD/s]
-    sensor_msgs::JointState baseJointStateMessage;
+  /// The joint trajectory goal that is currently active.
+  actionlib::ActionServer<control_msgs::FollowJointTrajectoryAction>::GoalHandle armActiveJointTrajectoryGoal;
 
-    /// Vector of the published joint states of per arm with angles in [RAD]
-    vector<sensor_msgs::JointState> armJointStateMessages;
+  /// Tell if a goal is currently active.
+  bool armHasActiveJointTrajectoryGoal;
 
-    /// The joint trajectory goal that is currently active.
-	actionlib::ActionServer<control_msgs::FollowJointTrajectoryAction>::GoalHandle armActiveJointTrajectoryGoal;
+  youbot::GripperSensedBarPosition gripperBar1Position;
+  youbot::GripperSensedBarPosition gripperBar2Position;
+  int gripperCycleCounter;
 
-	/// Tell if a goal is currently active.
-	bool armHasActiveJointTrajectoryGoal;
+  //void executeActionServer(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal,  int armIndex);
 
-	youbot::GripperSensedBarPosition gripperBar1Position;
-	youbot::GripperSensedBarPosition gripperBar2Position;
-	int gripperCycleCounter;
+  //bool trajectoryActionServerEnable;
+  //double trajectoryVelocityGain;
+  //double trajectoryPositionGain;
+  double youBotDriverCycleFrequencyInHz;
 
-    //void executeActionServer(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal,  int armIndex);
-    
-    //bool trajectoryActionServerEnable;
-    //double trajectoryVelocityGain;
-    //double trajectoryPositionGain;
-    double youBotDriverCycleFrequencyInHz;
-        
-    /// diagnostic msgs
-    ros::Time lastDiagnosticPublishTime;
+  /// diagnostic msgs
+  ros::Time lastDiagnosticPublishTime;
 
-    ros::Publisher dashboardMessagePublisher;
-    pr2_msgs::PowerBoardState platformStateMessage;
+  ros::Publisher dashboardMessagePublisher;
+  pr2_msgs::PowerBoardState platformStateMessage;
 
-    ros::Publisher diagnosticArrayPublisher;
-    diagnostic_msgs::DiagnosticArray diagnosticArrayMessage;
-    diagnostic_msgs::DiagnosticStatus diagnosticStatusMessage;
-    std::string diagnosticNameArm;
-    std::string diagnosticNameBase;
+  ros::Publisher diagnosticArrayPublisher;
+  diagnostic_msgs::DiagnosticArray diagnosticArrayMessage;
+  diagnostic_msgs::DiagnosticStatus diagnosticStatusMessage;
+  std::string diagnosticNameArm;
+  std::string diagnosticNameBase;
 
-    bool areBaseMotorsSwitchedOn;
-    bool areArmMotorsSwitchedOn;
+  bool areBaseMotorsSwitchedOn;
+  bool areArmMotorsSwitchedOn;
 };
 
 } // namespace youBot
