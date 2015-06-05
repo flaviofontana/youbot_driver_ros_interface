@@ -925,7 +925,15 @@ void YouBotOODLWrapper::publishOODLSensorReadings()
     {
         for (int armIndex = 0; armIndex < static_cast<int> (youBotConfiguration.youBotArmConfigurations.size()); armIndex++)
         {
+          double sum_positions=0;
+          for(int joint_index = 0; joint_index < youBotArmDoF; joint_index++)
+          {
+            sum_positions+=fabs(armJointStateMessages[armIndex].position[joint_index]);
+          }
+          if(sum_positions > 0)
+          {
             youBotConfiguration.youBotArmConfigurations[armIndex].armJointStatePublisher.publish(armJointStateMessages[armIndex]);
+          }
         }
     }
 
